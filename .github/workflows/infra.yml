@@ -54,9 +54,7 @@ jobs:
       - run: tofu init -input=false
       - run: tofu validate
 
-      - name: Plan
-        # PR plans never write the state, so they don't take the lock.
-        run: tofu plan -input=false -out=tfplan ${{ github.event_name == 'pull_request' && '-lock=false' || '' }}
+      - run: tofu plan -input=false -out=tfplan
 
       - name: Comment plan on PR
         if: github.event_name == 'pull_request'

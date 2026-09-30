@@ -27,6 +27,8 @@ The workflow `.github/workflows/infra.yml` runs when `infra/` or the workflow fi
 - **Pull request**: `fmt -check`, `validate`, and `plan`, with the plan posted as a single PR comment that is updated on each push. Nothing is applied. PRs from forks are skipped.
 - **Push to `main`**: `plan`, then `apply` of that exact plan after a reviewer approves the `production` environment. `main` runs never overlap.
 
+The state has no lock: Infomaniak Object Storage does not support the conditional writes that OpenTofu's `use_lockfile` needs. The workflow's `concurrency` group is what keeps two applies from running at once, so only apply from CI.
+
 ### One-time bootstrap
 
 Run these once, with the `openstack` CLI logged in to the Infomaniak project (source your `openrc` file or set `OS_CLOUD`).

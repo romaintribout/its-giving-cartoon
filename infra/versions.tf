@@ -19,7 +19,8 @@ terraform {
       s3 = "https://s3.pub1.infomaniak.cloud"
     }
     use_path_style = true
-    use_lockfile   = true
+    # No use_lockfile: Infomaniak does not support conditional PUTs, which it needs.
+    # The workflow's concurrency group is what prevents parallel applies.
 
     # Infomaniak is not AWS: skip the AWS-specific checks.
     skip_credentials_validation = true

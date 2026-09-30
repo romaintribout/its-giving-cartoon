@@ -44,7 +44,7 @@ The provider block stays empty. CI sets `OS_AUTH_TYPE=v3applicationcredential`, 
 Variables that are not secrets have defaults: region `dc3-a`, flavor `a2-ram4-disk20-perf1` (2 vCPU, 4 GB, a starting point for MongoDB + `mongot`), image name, volume size. `ssh_public_key` and `ssh_allowed_cidrs` have no defaults.
 
 ### `s3` backend on Infomaniak Object Storage
-The backend block in `versions.tf` sets the bucket, key `infra/terraform.tfstate`, `endpoints.s3`, `region`, `use_path_style = true`, and the `skip_*` flags that non-AWS S3 needs (`skip_credentials_validation`, `skip_region_validation`, `skip_requesting_account_id`, `skip_metadata_api_check`, `skip_s3_checksum`). Access keys come from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, created with `openstack ec2 credentials create`. `use_lockfile = true` is set and tested once (see Risks).
+The backend block in `versions.tf` sets the bucket, key `infra/terraform.tfstate`, `endpoints.s3`, `region`, `use_path_style = true`, and the `skip_*` flags that non-AWS S3 needs (`skip_credentials_validation`, `skip_region_validation`, `skip_requesting_account_id`, `skip_metadata_api_check`, `skip_s3_checksum`). Access keys come from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, created with `openstack ec2 credentials create`. No state locking: `use_lockfile` was tested and fails on Infomaniak with `NotImplemented: Conditional object PUTs are not supported` (see Risks).
 *Alternative:* HTTP backend or a GitLab-style managed backend. Rejected: we would add another service.
 
 ### Secrets: repository secrets plus an approval-only environment
@@ -56,7 +56,7 @@ GitHub does not pass repository secrets to workflows triggered from forks. The P
 - Triggers: `pull_request` and `push` on `main`, both filtered on `infra/**` and `.github/workflows/infra.yml`.
 - `permissions: contents: read, pull-requests: write`.
 - Setup with `opentofu/setup-opentofu` (pinned version); `working-directory: infra`.
-- **`plan` job** (both triggers): `tofu fmt -check -recursive`, `tofu init`, `tofu validate`, `tofu plan -out=tfplan`. On PRs it runs with `-lock=false`, since it never writes the state. On PRs it posts the output of `tofu show -no-color tfplan`, wrapped in a collapsible `<details>` block, using `gh pr comment --edit-last --create-if-none`, so there is one comment per PR that gets updated. On `main` it uploads `tfplan` as an artifact.
+- **`plan` job** (both triggers): `tofu fmt -check -recursive`, `tofu init`, `tofu validate`, `tofu plan -out=tfplan`. On PRs it posts the output of `tofu show -no-color tfplan`, wrapped in a collapsible `<details>` block, using `gh pr comment --edit-last --create-if-none`, so there is one comment per PR that gets updated. On `main` it uploads `tfplan` as an artifact.
 - **`apply` job** (`main` only, `needs: plan`, `environment: production`): downloads `tfplan`, `tofu init`, `tofu apply tfplan`, then prints `tofu output public_ip`. Applying the saved plan means the change that was reviewed is exactly what runs. If the state changed in between, OpenTofu rejects the stale plan.
 - `concurrency: { group: infra-main, cancel-in-progress: false }` only when `github.ref == 'refs/heads/main'`. PR runs use a per-PR group with `cancel-in-progress: true`.
 *Alternative:* a third-party wrapper (Atlantis, tf-via-pr action). Rejected: extra dependencies for little gain.
@@ -64,7 +64,7 @@ GitHub does not pass repository secrets to workflows triggered from forks. The P
 ## Risks / Trade-offs
 
 - [Long-lived credential in GitHub] → Application Credential limited to this OpenStack project, documented rotation steps in README.
-- [S3 lockfile support on Infomaniak unverified] → `concurrency` serializes `main` runs; one manual test of `use_lockfile` during implementation. If unsupported, remove it and document that.
+- [No state locking: Infomaniak Object Storage does not support the conditional PUTs that `use_lockfile` needs (tested)] → `concurrency` serializes `main` runs, and applies only run from CI. Do not run `tofu apply` locally.
 - [GitHub concurrency keeps only one pending run; a third queued run replaces the second] → Acceptable: the newest run plans against the latest `main`, which includes the skipped commit.
 - [Saved plan becomes stale while waiting for approval] → The apply fails cleanly; re-run the workflow.
 - [Plan output in PR comments could leak sensitive values] → No secrets are OpenTofu variables except the SSH public key, which is not sensitive. Mark any future secret variables `sensitive = true`.

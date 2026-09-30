@@ -46,9 +46,10 @@ secrets there would make pull request plans wait for approval too.
 - Every infrastructure change goes through a PR with a visible plan.
 - A long-lived secret lives in GitHub. It is scoped to one project and can
   be revoked, but it must be rotated manually.
-- State locking (`use_lockfile`) on Infomaniak Object Storage is unverified.
-  Until it is tested, `concurrency` is the only protection against
-  parallel applies. That is acceptable for a solo project.
+- State locking (`use_lockfile`) does not work on Infomaniak Object Storage:
+  it needs conditional PUTs, which Infomaniak does not support (tested).
+  `concurrency` is the only protection against parallel applies, so
+  applies must only run from CI. That is acceptable for a solo project.
 - The state bucket is a manual, one-time step that must be documented.
 - The VM exists but is not configured. It is not useful until the
   configuration ADR is written and implemented.
