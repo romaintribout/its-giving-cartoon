@@ -13,7 +13,8 @@ terraform {
   backend "s3" {
     bucket = "its-giving-cartoon-tfstate"
     key    = "infra/terraform.tfstate"
-    region = "dc3-a"
+    # Infomaniak's S3 API only accepts this region name in request signatures.
+    region = "us-east-1"
     endpoints = {
       s3 = "https://s3.pub1.infomaniak.cloud"
     }

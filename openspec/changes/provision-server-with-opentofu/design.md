@@ -84,4 +84,4 @@ Rollback: revert the PR, then approve the resulting apply. The data volume is pr
 ## Open Questions
 
 - Exact flavor, image, and external network names available in the chosen region. Check with `openstack flavor list`, `openstack image list`, and `openstack network list --external` during implementation; only defaults change.
-- The exact S3 endpoint and region string for Infomaniak Object Storage in `dc3-a`. Check against Infomaniak documentation during implementation.
+- ~~The exact S3 endpoint and region string for Infomaniak Object Storage in `dc3-a`.~~ Resolved: endpoint `https://s3.pub1.infomaniak.cloud`, region `us-east-1` (the S3 API rejects `dc3-a` with `AuthorizationHeaderMalformed`).
