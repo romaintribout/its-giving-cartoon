@@ -1,0 +1,118 @@
+name: infra
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# main runs are serialized and never cancelled; PR runs cancel older runs of the same PR.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'infra-main' || format('infra-pr-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  TOFU_VERSION: "1.12.6"
+  OS_AUTH_TYPE: v3applicationcredential
+  OS_AUTH_URL: https://api.pub1.infomaniak.cloud/identity/v3
+  OS_REGION_NAME: dc3-a
+  OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+  OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+  TF_VAR_ssh_allowed_cidrs: ${{ secrets.SSH_ALLOWED_CIDRS }}
+  TF_IN_AUTOMATION: "true"
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  plan:
+    # Forks get no secrets, so skip them instead of failing.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+
+      # The repo is public: hide each allowed CIDR (a home IP) from the logs.
+      - name: Mask allowed SSH CIDRs
+        run: jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs" | sed 's/^/::add-mask::/'
+
+      - run: tofu fmt -check -recursive
+      - run: tofu init -input=false
+      - run: tofu validate
+
+      - run: tofu plan -input=false -out=tfplan
+
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "### OpenTofu plan"
+            echo
+            echo "<details><summary>Show plan</summary>"
+            echo
+            echo '```'
+            plan=$(tofu show -no-color tfplan)
+            # Masks only apply to logs, so hide the CIDRs in the comment too.
+            for cidr in $(jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs"); do
+              plan=${plan//"$cidr"/***}
+            done
+            echo "$plan"
+            echo '```'
+            echo "</details>"
+          } > plan.md
+          gh pr comment "$PR_NUMBER" --body-file plan.md --edit-last --create-if-none
+
+      - name: Upload plan
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan
+          path: infra/tfplan
+
+  apply:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+
+      # The repo is public: hide each allowed CIDR (a home IP) from the logs.
+      - name: Mask allowed SSH CIDRs
+        run: jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs" | sed 's/^/::add-mask::/'
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: tfplan
+          path: infra
+
+      - run: tofu init -input=false
+      # Applies exactly the reviewed plan; OpenTofu rejects it if the state changed since.
+      - run: tofu apply -input=false tfplan
+      - run: tofu output public_ip

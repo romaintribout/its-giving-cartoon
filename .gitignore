@@ -1,0 +1,10 @@
+# OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfvars
+
+# Local files
+.DS_Store
+.claude/settings.local.json
