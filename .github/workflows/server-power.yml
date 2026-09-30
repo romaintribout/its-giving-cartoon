@@ -1,0 +1,50 @@
+name: server-power
+
+# Stops the server every night to save costs (a stopped instance is not billed,
+# except for its storage and public IP). Run it by hand to start or stop it.
+on:
+  schedule:
+    - cron: "0 1 * * *"
+      timezone: Europe/Paris
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Start or stop the server
+        type: choice
+        options: [start, stop]
+        default: start
+
+permissions:
+  contents: read
+
+# Share the infra group so power changes never overlap an apply.
+concurrency:
+  group: infra-main
+  cancel-in-progress: false
+
+env:
+  SERVER: its-giving-cartoon
+  ACTION: ${{ inputs.action || 'stop' }}
+  OS_AUTH_TYPE: v3applicationcredential
+  OS_AUTH_URL: https://api.pub1.infomaniak.cloud/identity/v3
+  OS_REGION_NAME: dc3-a
+  OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+  OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+
+jobs:
+  power:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pipx install python-openstackclient
+
+      - name: Start or stop the server
+        run: |
+          status=$(openstack server show "$SERVER" -f value -c status)
+          echo "Current status: $status"
+          if [ "$ACTION" = stop ] && [ "$status" != SHUTOFF ]; then
+            openstack server stop "$SERVER"
+          elif [ "$ACTION" = start ] && [ "$status" != ACTIVE ]; then
+            openstack server start "$SERVER"
+          else
+            echo "Nothing to do."
+          fi

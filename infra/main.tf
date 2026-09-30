@@ -76,6 +76,11 @@ resource "openstack_compute_instance_v2" "main" {
 
   # The subnet must exist before the VM gets a port on the network.
   depends_on = [openstack_networking_subnet_v2.main]
+
+  # The server-power workflow stops and starts the VM; don't undo that on apply.
+  lifecycle {
+    ignore_changes = [power_state]
+  }
 }
 
 # Data volume, kept separate from the VM so the VM can be replaced without losing data.
