@@ -78,6 +78,16 @@ Then connect with `ssh ubuntu@<public_ip>`.
 
 If the apply fails because the saved plan is stale, re-run the workflow.
 
+### Nightly shutdown
+
+The `server-power` workflow stops the server every night at 1:00 (Europe/Paris) to save costs: a stopped instance is not billed, except for its storage and public IP. It does not start it again. To start the server (or stop it by hand), run the workflow from the Actions tab and pick `start` or `stop`, or:
+
+```sh
+gh workflow run server-power.yml -f action=start
+```
+
+OpenTofu ignores the server's power state, so an apply never restarts a stopped server. GitHub disables scheduled workflows after 60 days without activity in the repository; re-enable it from the Actions tab if that happens.
+
 ### Running OpenTofu locally
 
 ```sh
