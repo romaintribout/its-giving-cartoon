@@ -13,7 +13,7 @@
 - [x] 2.1 Confirm flavor, image, and external network names in the region (`openstack flavor list`, `openstack image list`, `openstack network list --external`) and the Object Storage S3 endpoint and region. Update defaults in `variables.tf` and `versions.tf` if needed
 - [x] 2.2 Create the Application Credential, EC2 credentials, and the state bucket. Verify by running `tofu init` and `tofu plan` locally with those credentials; the plan should list all resources to create
 - [x] 2.3 Test `use_lockfile`: hold a lock with a running `tofu plan` (or `tofu console`) and run a second `tofu plan` in parallel; it must fail with a lock error. If Infomaniak does not support it, remove `use_lockfile` and record that in design.md and README
-- [ ] 2.4 Document the bootstrap steps (credential, EC2 keys, bucket, repository secrets including `SSH_ALLOWED_CIDRS`, `production` environment with required reviewer, credential rotation) in a new "Infrastructure" section of `README.md`. Verify that each command in it runs as written
+- [x] 2.4 Document the bootstrap steps (credential, EC2 keys, bucket, repository secrets including `SSH_ALLOWED_CIDRS`, `production` environment with required reviewer, credential rotation) in a new "Infrastructure" section of `README.md`. Verify that each command in it runs as written (bootstrap commands run during setup; the rotation `delete` commands were not run, since they are destructive)
 
 ## 3. GitHub Actions workflow
 
@@ -30,6 +30,6 @@
 ## 5. End-to-end check
 
 - [x] 5.1 Open a PR with the changes. Verify that the workflow runs, `fmt`/`validate` pass, and a plan comment appears. Push a new commit and verify that the same comment is updated, not duplicated
-- [ ] 5.2 Merge the PR. Verify that `apply` waits for approval, then approve it and check that it succeeds and prints `public_ip`
-- [ ] 5.3 Verify the server: `ssh ubuntu@<public_ip>` works from an allowed CIDR, `lsblk` shows the data volume, and `nc -zv <public_ip> 27017` fails
-- [ ] 5.4 Re-run the `main` workflow without changes. Verify that the plan reports no changes
+- [x] 5.2 Merge the PR. Verify that `apply` waits for approval, then approve it and check that it succeeds and prints `public_ip`
+- [x] 5.3 Verify the server: `ssh ubuntu@<public_ip>` works from an allowed CIDR, `lsblk` shows the data volume, and `nc -zv <public_ip> 27017` fails
+- [x] 5.4 Re-run the `main` workflow without changes. Verify that the plan reports no changes
