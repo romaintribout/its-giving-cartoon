@@ -29,7 +29,7 @@
 
 ## 5. End-to-end check
 
-- [ ] 5.1 Open a PR with the changes. Verify that the workflow runs, `fmt`/`validate` pass, and a plan comment appears. Push a new commit and verify that the same comment is updated, not duplicated
+- [x] 5.1 Open a PR with the changes. Verify that the workflow runs, `fmt`/`validate` pass, and a plan comment appears. Push a new commit and verify that the same comment is updated, not duplicated
 - [ ] 5.2 Merge the PR. Verify that `apply` waits for approval, then approve it and check that it succeeds and prints `public_ip`
 - [ ] 5.3 Verify the server: `ssh ubuntu@<public_ip>` works from an allowed CIDR, `lsblk` shows the data volume, and `nc -zv <public_ip> 27017` fails
 - [ ] 5.4 Re-run the `main` workflow without changes. Verify that the plan reports no changes
