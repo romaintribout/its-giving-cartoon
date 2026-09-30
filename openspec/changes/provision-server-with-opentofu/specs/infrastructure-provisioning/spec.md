@@ -80,7 +80,11 @@ CI SHALL NOT run two `main` workflow runs at the same time. A new run SHALL wait
 - **THEN** the pull request plan runs without waiting and does not change the state
 
 ### Requirement: Credentials stay out of the repository
-Cloud and storage credentials SHALL be provided to CI only through GitHub repository secrets, and SHALL NOT appear in the repository or in workflow logs. Workflow runs triggered from forks SHALL NOT receive them.
+Cloud and storage credentials, and the allowed SSH CIDR ranges, SHALL be provided to CI only through GitHub repository secrets, and SHALL NOT appear in the repository, in workflow logs, or in pull request comments. Workflow runs triggered from forks SHALL NOT receive them.
+
+#### Scenario: Allowed SSH ranges are not published
+- **WHEN** the workflow plans or applies with the allowed SSH CIDR ranges
+- **THEN** the ranges appear as `***` in the workflow logs and in the pull request plan comment
 
 #### Scenario: Pull request from a fork
 - **WHEN** a pull request is opened from a fork

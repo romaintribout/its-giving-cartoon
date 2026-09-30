@@ -52,7 +52,7 @@ Run these once, with the `openstack` CLI logged in to the Infomaniak project (so
    openstack container create its-giving-cartoon-tfstate
    ```
 
-4. Add the repository secrets and variable (Settings → Secrets and variables → Actions, or with `gh`):
+4. Add the repository secrets (Settings → Secrets and variables → Actions, or with `gh`):
 
    ```sh
    gh secret set OS_APPLICATION_CREDENTIAL_ID      # application credential id
@@ -60,10 +60,10 @@ Run these once, with the `openstack` CLI logged in to the Infomaniak project (so
    gh secret set AWS_ACCESS_KEY_ID                 # EC2 "access"
    gh secret set AWS_SECRET_ACCESS_KEY             # EC2 "secret"
    gh secret set SSH_PUBLIC_KEY < ~/.ssh/id_ed25519.pub
-   gh variable set SSH_ALLOWED_CIDRS --body '["203.0.113.4/32"]'
+   gh secret set SSH_ALLOWED_CIDRS --body '["203.0.113.4/32"]'
    ```
 
-   `SSH_ALLOWED_CIDRS` is a JSON list of the ranges allowed to reach SSH.
+   `SSH_ALLOWED_CIDRS` is a JSON list of the ranges allowed to reach SSH. It is a secret because the repository is public and it usually holds a home IP: the workflow masks each range in the logs and replaces it with `***` in the plan comment.
 
 5. Create the `production` environment (Settings → Environments → New environment), enable **Required reviewers**, and add yourself. Add no secrets to it: the credentials are repository secrets, and `production` only gates the `apply` job. Putting the secrets in the environment would make PR plans wait for approval too.
 

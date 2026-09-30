@@ -48,7 +48,7 @@ The backend block in `versions.tf` sets the bucket, key `infra/terraform.tfstate
 *Alternative:* HTTP backend or a GitLab-style managed backend. Rejected: we would add another service.
 
 ### Secrets: repository secrets plus an approval-only environment
-Repository secrets: `OS_APPLICATION_CREDENTIAL_ID`, `OS_APPLICATION_CREDENTIAL_SECRET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `SSH_PUBLIC_KEY`. Repository variable (not secret): `SSH_ALLOWED_CIDRS`, as a JSON list passed through `TF_VAR_ssh_allowed_cidrs`. The `production` environment holds no secrets and has one required reviewer. Only the apply job uses it.
+Repository secrets: `OS_APPLICATION_CREDENTIAL_ID`, `OS_APPLICATION_CREDENTIAL_SECRET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `SSH_PUBLIC_KEY`, `SSH_ALLOWED_CIDRS`. `SSH_ALLOWED_CIDRS` is a JSON list passed through `TF_VAR_ssh_allowed_cidrs`; it is a secret because the repository is public and the list usually holds a home IP. Both jobs register each CIDR with `::add-mask::` so logs show `***`, and the PR comment replaces each CIDR with `***` (masks only apply to logs). The `production` environment holds no secrets and has one required reviewer. Only the apply job uses it.
 *Alternatives:* (a) all secrets in `production`, which makes PR plans wait for approval too, since reviewers gate every job that uses the environment; (b) two environments with copies of the same secrets, which doubles rotation. Chosen with the user; it deviates from the ADR's wording, so the ADR gets a short note.
 GitHub does not pass repository secrets to workflows triggered from forks. The PR job also skips itself when `head.repo.full_name != github.repository`.
 
@@ -67,7 +67,8 @@ GitHub does not pass repository secrets to workflows triggered from forks. The P
 - [No state locking: Infomaniak Object Storage does not support the conditional PUTs that `use_lockfile` needs (tested)] → `concurrency` serializes `main` runs, and applies only run from CI. Do not run `tofu apply` locally.
 - [GitHub concurrency keeps only one pending run; a third queued run replaces the second] → Acceptable: the newest run plans against the latest `main`, which includes the skipped commit.
 - [Saved plan becomes stale while waiting for approval] → The apply fails cleanly; re-run the workflow.
-- [Plan output in PR comments could leak sensitive values] → No secrets are OpenTofu variables except the SSH public key, which is not sensitive. Mark any future secret variables `sensitive = true`.
+- [Plan output in PR comments could leak sensitive values] → The only secret OpenTofu variables are the SSH public key (not sensitive) and the allowed CIDRs, which are masked in logs and replaced in the comment. Mark any future secret variables `sensitive = true`.
+- [The `tfplan` artifact on `main` contains the allowed CIDRs in clear, and artifacts of a public repository can be downloaded by any signed-in GitHub user] → Accepted for now: the value is a home IP that only opens SSH with key authentication.
 - [`prevent_destroy` blocks intentional teardown] → Documented: remove the lifecycle rule in a PR first.
 - [Flavor may be too small for MongoDB + `mongot` later] → It is a variable; resizing is a one-line PR.
 
@@ -76,7 +77,7 @@ GitHub does not pass repository secrets to workflows triggered from forks. The P
 Greenfield. One-time manual bootstrap (documented in README):
 1. Create an Application Credential in the Infomaniak project.
 2. Create EC2 credentials and the state bucket in Object Storage.
-3. Add the repository secrets and the `SSH_ALLOWED_CIDRS` variable, and create the `production` environment with a required reviewer.
+3. Add the repository secrets (including `SSH_ALLOWED_CIDRS`), and create the `production` environment with a required reviewer.
 4. Open the PR, check the plan comment, merge, approve the apply.
 
 Rollback: revert the PR, then approve the resulting apply. The data volume is protected by `prevent_destroy`.

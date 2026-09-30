@@ -30,7 +30,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-  TF_VAR_ssh_allowed_cidrs: ${{ vars.SSH_ALLOWED_CIDRS }}
+  TF_VAR_ssh_allowed_cidrs: ${{ secrets.SSH_ALLOWED_CIDRS }}
   TF_IN_AUTOMATION: "true"
 
 defaults:
@@ -50,6 +50,10 @@ jobs:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
 
+      # The repo is public: hide each allowed CIDR (a home IP) from the logs.
+      - name: Mask allowed SSH CIDRs
+        run: jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs" | sed 's/^/::add-mask::/'
+
       - run: tofu fmt -check -recursive
       - run: tofu init -input=false
       - run: tofu validate
@@ -68,7 +72,12 @@ jobs:
             echo "<details><summary>Show plan</summary>"
             echo
             echo '```'
-            tofu show -no-color tfplan
+            plan=$(tofu show -no-color tfplan)
+            # Masks only apply to logs, so hide the CIDRs in the comment too.
+            for cidr in $(jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs"); do
+              plan=${plan//"$cidr"/***}
+            done
+            echo "$plan"
             echo '```'
             echo "</details>"
           } > plan.md
@@ -93,6 +102,10 @@ jobs:
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
+
+      # The repo is public: hide each allowed CIDR (a home IP) from the logs.
+      - name: Mask allowed SSH CIDRs
+        run: jq -r '.[]' <<< "$TF_VAR_ssh_allowed_cidrs" | sed 's/^/::add-mask::/'
 
       - uses: actions/download-artifact@v8
         with:

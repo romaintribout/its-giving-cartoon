@@ -13,7 +13,7 @@
 - [x] 2.1 Confirm flavor, image, and external network names in the region (`openstack flavor list`, `openstack image list`, `openstack network list --external`) and the Object Storage S3 endpoint and region. Update defaults in `variables.tf` and `versions.tf` if needed
 - [x] 2.2 Create the Application Credential, EC2 credentials, and the state bucket. Verify by running `tofu init` and `tofu plan` locally with those credentials; the plan should list all resources to create
 - [x] 2.3 Test `use_lockfile`: hold a lock with a running `tofu plan` (or `tofu console`) and run a second `tofu plan` in parallel; it must fail with a lock error. If Infomaniak does not support it, remove `use_lockfile` and record that in design.md and README
-- [ ] 2.4 Document the bootstrap steps (credential, EC2 keys, bucket, repository secrets, `SSH_ALLOWED_CIDRS` variable, `production` environment with required reviewer, credential rotation) in a new "Infrastructure" section of `README.md`. Verify that each command in it runs as written
+- [ ] 2.4 Document the bootstrap steps (credential, EC2 keys, bucket, repository secrets including `SSH_ALLOWED_CIDRS`, `production` environment with required reviewer, credential rotation) in a new "Infrastructure" section of `README.md`. Verify that each command in it runs as written
 
 ## 3. GitHub Actions workflow
 
@@ -21,6 +21,7 @@
 - [x] 3.2 Add the `plan` job: setup-opentofu, `fmt -check`, `init`, `validate`, `plan -out=tfplan` (`-lock=false` on PRs), skip for fork PRs, post or update the plan comment with `gh pr comment --edit-last --create-if-none` on PRs, upload `tfplan` on `main`. Verify with `actionlint`
 - [x] 3.3 Add the `apply` job: `needs: plan`, `environment: production`, `main` only, download `tfplan`, `init`, `apply tfplan`, print `public_ip`. Verify with `actionlint`
 - [x] 3.4 Add a short "Day-to-day workflow" note to the README's Infrastructure section (open a PR, read the plan comment, merge, approve the deployment) and update the README Status line
+- [x] 3.5 Store `SSH_ALLOWED_CIDRS` as a secret, mask each CIDR in both jobs with `::add-mask::`, and replace the CIDRs with `***` in the PR plan comment. Verify with `actionlint` and a local test of the replacement
 
 ## 4. ADR note
 
