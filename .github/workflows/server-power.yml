@@ -17,9 +17,10 @@ on:
 permissions:
   contents: read
 
-# Share the infra group so power changes never overlap an apply.
+# Own group: sharing infra-main would block the nightly stop while an apply
+# awaits approval. Safe because OpenTofu ignores the server's power state.
 concurrency:
-  group: infra-main
+  group: server-power
   cancel-in-progress: false
 
 env:
