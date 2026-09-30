@@ -11,7 +11,7 @@
 ## 2. One-time cloud bootstrap (manual)
 
 - [x] 2.1 Confirm flavor, image, and external network names in the region (`openstack flavor list`, `openstack image list`, `openstack network list --external`) and the Object Storage S3 endpoint and region. Update defaults in `variables.tf` and `versions.tf` if needed
-- [ ] 2.2 Create the Application Credential, EC2 credentials, and the state bucket. Verify by running `tofu init` and `tofu plan` locally with those credentials; the plan should list all resources to create
+- [x] 2.2 Create the Application Credential, EC2 credentials, and the state bucket. Verify by running `tofu init` and `tofu plan` locally with those credentials; the plan should list all resources to create
 - [x] 2.3 Test `use_lockfile`: hold a lock with a running `tofu plan` (or `tofu console`) and run a second `tofu plan` in parallel; it must fail with a lock error. If Infomaniak does not support it, remove `use_lockfile` and record that in design.md and README
 - [ ] 2.4 Document the bootstrap steps (credential, EC2 keys, bucket, repository secrets, `SSH_ALLOWED_CIDRS` variable, `production` environment with required reviewer, credential rotation) in a new "Infrastructure" section of `README.md`. Verify that each command in it runs as written
 
