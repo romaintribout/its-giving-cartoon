@@ -1,7 +1,8 @@
 name: server-power
 
-# Stops the server every night to save costs (a stopped instance is not billed,
-# except for its storage and public IP). Run it by hand to start or stop it.
+# Stops the server every night to cut costs. A stopped server still costs a
+# little (instance, storage and public IP); run infra-destroy to stop all charges.
+# Run it by hand to start or stop the server.
 on:
   schedule:
     - cron: "0 1 * * *"
@@ -40,7 +41,11 @@ jobs:
 
       - name: Start or stop the server
         run: |
-          status=$(openstack server show "$SERVER" -f value -c status)
+          status=$(openstack server list --name "^${SERVER}$" -f value -c Status)
+          if [ -z "$status" ]; then
+            echo "Server not found (destroyed?). Nothing to do."
+            exit 0
+          fi
           echo "Current status: $status"
           if [ "$ACTION" = stop ] && [ "$status" != SHUTOFF ]; then
             openstack server stop "$SERVER"
