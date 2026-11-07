@@ -80,7 +80,7 @@ If the apply fails because the saved plan is stale, re-run the workflow.
 
 ### Nightly shutdown
 
-The `server-power` workflow stops the server every night at 1:00 (Europe/Paris) to save costs: a stopped instance is not billed, except for its storage and public IP. It does not start it again. To start the server (or stop it by hand), run the workflow from the Actions tab and pick `start` or `stop`, or:
+The `server-power` workflow stops the server every night at 1:00 (Europe/Paris) to cut costs. A stopped server is still billed for the instance (at a lower rate), its storage and its public IP: about 9 € excl. VAT per month. To stop all charges, destroy the infrastructure (see below). The workflow does not start the server again, and does nothing if the server does not exist. To start the server (or stop it by hand), run the workflow from the Actions tab and pick `start` or `stop`, or:
 
 ```sh
 gh workflow run server-power.yml -f action=start
@@ -112,6 +112,8 @@ Apply only from CI.
    openstack ec2 credentials delete <old-access-key>
    ```
 
-### Destroying the data volume
+### Destroying the infrastructure
 
-The data volume has `prevent_destroy`, so OpenTofu refuses to delete it. To remove it on purpose, first merge a PR that removes the `lifecycle` block.
+To delete every resource in `infra/`, including the data volume and its data, run the `infra-destroy` workflow from the Actions tab (or `gh workflow run infra-destroy.yml`), then approve the `production` deployment. The state bucket and the credentials are kept.
+
+To recreate everything, re-run the latest `infra` workflow on `main` from the Actions tab, or merge any change to `infra/`, then approve the deployment. The server gets a new public IP.

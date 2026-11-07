@@ -84,16 +84,11 @@ resource "openstack_compute_instance_v2" "main" {
 }
 
 # Data volume, kept separate from the VM so the VM can be replaced without losing data.
-# To delete it on purpose, remove prevent_destroy in a PR first.
 
 resource "openstack_blockstorage_volume_v3" "data" {
   name   = "its-giving-cartoon-data"
   region = var.region
   size   = var.volume_size
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "openstack_compute_volume_attach_v2" "data" {
